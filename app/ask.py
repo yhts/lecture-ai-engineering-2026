@@ -13,7 +13,7 @@
 import argparse
 
 from google import genai
-from google.genai import errors
+from google.genai import errors, types
 
 from app.config import MODEL, api_error_message, get_api_key
 
@@ -21,12 +21,30 @@ from app.config import MODEL, api_error_message, get_api_key
 DEFAULT_QUESTION = "AIE2026の講座の宿題にある「3レベル」とは何ですか？"
 
 
+def print_usage(usage: types.GenerateContentResponseUsageMetadata | None) -> None:
+    """レスポンスに含まれるトークン使用量を表示する。"""
+    if usage is None:
+        print("[トークン] 使用量の情報が返ってきませんでした\n")
+        return
+
+    # 各フィールドは値が入っていないと None になるので、0 に置き換えておく
+    input_tokens = usage.prompt_token_count or 0  # 入力（プロンプト）
+    output_tokens = usage.candidates_token_count or 0  # 出力（回答本文）
+    thoughts_tokens = usage.thoughts_token_count or 0  # 思考（思考するモデルのみ）
+
+    print(f"[入力トークン] {input_tokens}")
+    print(f"[出力トークン] {output_tokens}")
+    if thoughts_tokens:
+        print(f"[思考トークン] {thoughts_tokens}")
+    print(f"[合計トークン] {usage.total_token_count}\n")
+
+
 def ask(question: str) -> str:
     client = genai.Client(api_key=get_api_key())
     response = client.models.generate_content(model=MODEL, contents=question)
 
-    # TODO(第1回 演習): response.usage_metadata から
-    #   入力トークン数と出力トークン数を表示してみよう（Copilotに頼んでよい）
+    # 第1回 演習: 入力トークン数と出力トークン数を表示する
+    print_usage(response.usage_metadata)
 
     return response.text
 
